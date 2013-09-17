@@ -1,0 +1,51 @@
+#!/bin/sh
+#
+# Author: Bas van der Vlies
+# Desc. : Apply some useful debian/sara patches to torque
+#
+# SVN INFO:
+#	$Id: apply 2336 2006-09-26 12:31:18Z bas $
+#
+#patch < debian/patches/tk.patch
+
+# pbs_mkdir.in patches by SARA, stiil needed for 2.5
+#
+cp debian/patches/pbs_mkdirs.in buildutils 
+
+r=`grep -c 2.1.0 CHANGELOG`
+case `uname -r` in
+	2.6*)
+		if [ $r -eq 0 ]
+		then
+			touch torque_oldconfigure
+		else
+			touch torque_newconfigure
+		fi
+	;;
+esac
+
+# Always do this patch
+#
+debian/patches/submit_filter.patch
+
+# For version 2.0.0p7 we applied this patches
+#
+#patch -p0 < debian/patches/torque.cfg.patch
+#patch -p0 < debian/patches/epilogue.parallel.patch
+
+# For versions 2.1.1 and 2.1.2
+#
+#patch -p0 < debian/patches/acl_sloppy_group.patch
+
+# Only for torque-2.2.0
+#patch -p0 < debian/patches/gcc4.2-amd64.patch
+#patch -p0 < debian/patches/torque-pam.patch
+
+# at least until 2.3.0, these patches are required:
+# patch -p0 < debian/patches/gcc4.1-rlimit.patch
+
+# changed syslog to pam_syslog version 2.1
+#patch -p0 < debian/patches/pam_pbssimpleauth.patch
+
+# changed syslog to pam_syslog version 2.4
+patch -p0 < debian/patches/2.4/pam_pbssimpleauth.patch

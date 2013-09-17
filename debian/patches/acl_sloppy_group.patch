@@ -1,0 +1,77 @@
+--- src/server/svr_jobfunc.c	2006-06-20 02:24:02.000000000 +0200
++++ src/server/svr_jobfunc.c	2006-09-21 10:51:36.262261683 +0200
+@@ -1015,6 +1015,10 @@
+   int failed_group_acl = 0;
+   int failed_user_acl  = 0;
+ 
++  /* HvB */
++  struct array_strings *pas;
++  int j=0;
++
+   if (EMsg != NULL)
+     EMsg[0] = '\0';
+ 
+@@ -1089,7 +1093,6 @@
+           (!(pjob->ji_wattr[(int)JOB_ATR_grouplst].at_flags & ATR_VFLAG_SET)))
+         {
+         /* check group acl against all accessible groups */
+-
+         struct group *grp;
+         int i;
+ 
+@@ -1097,34 +1100,30 @@
+ 
+         strncpy(uname,pjob->ji_wattr[(int)JOB_ATR_euser].at_val.at_str,PBS_MAXUSER);
+ 
+-        setgrent();
+-
+         /* walk all groups looking for matching user membership */
+ 
+-        while ((grp = getgrent()))
+-          {
+-          for (i = 0;grp->gr_mem[i] != NULL;i++)
+-            {
+-            if (strcmp(grp->gr_mem[i],uname))
+-              continue;
+-
+-            rc = acl_check(
+-              &pque->qu_attr[QA_ATR_AclGroup],
+-              grp->gr_name,
+-              ACL_Gid);
+-
+-            break;
+-            }
+-
+-          if (rc != 0)
+-            {
+-            /* match found */
+-
+-            break;
+-            }
+-          }  /* END while (grp) */
++	pas =  pque->qu_attr[QA_ATR_AclGroup].at_val.at_arst;
++	for (i=0; i<pas->as_usedptr; i++) 
++	{
++		/* HvB debug info
++		printf("pas->as_usedptr = %d\n", pas->as_usedptr);
++		printf("pas->as_usedptr = %s, %d\n", pas->as_string[i], i);
++		*/
++		if ( (grp = getgrnam(pas->as_string[i])) != NULL) 
++		{
++			j = 0;
++		        while(grp->gr_mem[j] != NULL) 
++			{
++			       	if (!strcmp(grp->gr_mem[j], uname))
++				{
++				   	rc = 1;
++					break;
++				}
++				j++;
++			}
++		}
+ 
+-        endgrent();
++	}
+         }    /* END if (rc == 0) && AclGroupSloppy...) */
+ 
+       if (rc == 0)

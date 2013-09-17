@@ -1,0 +1,11 @@
+--- configure	2004-08-04 12:23:08.000000000 +0200
++++ configure.new	2004-08-04 12:13:10.000000000 +0200
+@@ -1048,7 +1048,7 @@
+ 
+                     tk_h=/dev/null
+     for i in $TCL_DIR/include/tk.h \
+-      `/bin/ls -d $TCL_DIR/include/tk*/tk.h 2> /dev/null`; do
++      `/bin/ls -d $TCL_DIR/include/tcl*/tk.h 2> /dev/null`; do
+         test -r $i && { tk_h="$i"; break; }
+     done
+ 

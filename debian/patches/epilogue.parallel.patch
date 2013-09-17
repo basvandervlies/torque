@@ -1,0 +1,18 @@
+--- src/resmom/mom_main.c  2006-01-27 19:42:04.000000000 +0100
++++ src/resmon/mom_main.c  2006-02-21 15:34:40.372437633 +0100
+@@ -4689,6 +4689,15 @@
+     sprintf(PBSNodeMsgBuf,"ERROR:  precancel epilog failed");
+     }
+
++  /*
++   * HvB enable epilogue.parallel script
++  */
++  if (run_pelog(PE_EPILOG,path_epilogp,pjob,PE_IO_TYPE_NULL) != 0)
++    {
++    log_err(-1,(char *)id,"epilog parallel failed");
++    sprintf(PBSNodeMsgBuf,"ERROR:  epilog parallel failed");
++    }
++
+   ptask = (task *)GET_NEXT(pjob->ji_tasks);
+
+   while (ptask != NULL)

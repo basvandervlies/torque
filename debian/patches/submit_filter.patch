@@ -1,0 +1,9 @@
+#!/bin/sh
+
+FILE="src/cmds/qsub.c"
+ORG="/usr/local/sbin/torque_submitfilter"
+NEW="/usr/sbin/torque_submitfilter"
+
+sed -e "s,$ORG,$NEW," $FILE > $FILE.new
+
+mv $FILE.new $FILE

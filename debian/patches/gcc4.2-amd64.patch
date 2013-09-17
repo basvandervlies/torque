@@ -1,0 +1,11 @@
+--- src/scheduler.cc/samples/fifo/parse.c	2006-07-12 17:25:20.000000000 +0200
++++ src/scheduler.cc/samples/fifo/parse.c	2007-11-01 11:33:15.000000000 +0100
+@@ -335,7 +335,7 @@
+     perror("Error Allocating Memory");
+     return 0;
+   }
+-  memset( conf.non_prime_sort, (int) NULL, (num_sorts + 1 ) * 
++  memset( conf.non_prime_sort, 0, (num_sorts + 1 ) * 
+   		sizeof( struct sort_info) );
+   
+   if( is_prime_time() == PRIME )

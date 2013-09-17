@@ -1,0 +1,137 @@
+--- src/pam/pam_pbssimpleauth.c	2010-03-25 11:59:41.586094181 +0100
++++ src/pam/pam_pbssimpleauth.c.new	2010-03-25 12:00:49.133610859 +0100
+@@ -35,6 +35,11 @@
+ #define PAM_SM_AUTH
+ #define PAM_SM_ACCOUNT
+ 
++/*
++ * HVB: add for pam_syslog
++*/
++#include <security/pam_ext.h>
++
+ #ifdef HAVE_SECURITY_PAM_APPL_H
+ #include <security/pam_appl.h>
+ #endif
+@@ -76,7 +81,6 @@
+   char jobdirpath[PATH_MAX+1];
+   int debug = 0;
+ 
+-  openlog(MODNAME, LOG_PID, LOG_USER);
+   strcpy(jobdirpath, PBS_SERVER_HOME "/mom_priv/jobs");
+ 
+   /* step through arguments */
+@@ -88,16 +92,15 @@
+     else if (!strcmp(*argv, "jobdir"))
+       strncpy(jobdirpath, *argv, PATH_MAX);
+     else
+-      syslog(LOG_ERR, "unknown option: %s", *argv);
++      pam_syslog(pamh, LOG_ERR, "unknown option: %s", *argv);
+     }
+ 
+-  if (debug) syslog(LOG_INFO, "opening %s", jobdirpath);
++  if (debug) pam_syslog(pamh, LOG_INFO, "opening %s", jobdirpath);
+ 
+   if ((jobdir = opendir(jobdirpath)) == NULL)
+     {
+-    if (debug) syslog(LOG_INFO, "failed to open jobs dir: %s", strerror(errno));
++    if (debug) pam_syslog(pamh, LOG_INFO, "failed to open jobs dir: %s", strerror(errno));
+ 
+-    closelog();
+ 
+     return PAM_IGNORE;
+     }
+@@ -108,7 +111,6 @@
+ #if defined(PAM_CONV_AGAIN) && defined(PAM_INCOMPLETE)
+   if (retval == PAM_CONV_AGAIN)
+     {
+-    closelog();
+     return PAM_INCOMPLETE;
+     }
+ 
+@@ -116,8 +118,7 @@
+ 
+   if ((retval != PAM_SUCCESS) || !username)
+     {
+-    syslog(LOG_ERR, "failed to retrieve username");
+-    closelog();
++    pam_syslog(pamh, LOG_ERR, "failed to retrieve username");
+     return PAM_SERVICE_ERR;
+     }
+ 
+@@ -125,7 +126,7 @@
+ 
+   /* no early returns from this point on because we need to free ubuf */
+ 
+-  if (debug) syslog(LOG_INFO, "username %s, %s", username, user_pwd ? "known" : "unknown");
++  if (debug) pam_syslog(pamh, LOG_INFO, "username %s, %s", username, user_pwd ? "known" : "unknown");
+ 
+   if (!user_pwd)
+     {
+@@ -133,7 +134,7 @@
+     }
+   else if (user_pwd->pw_uid == 0)
+     {
+-    if (debug) syslog(LOG_INFO, "allowing uid 0");
++    if (debug) pam_syslog(pamh, LOG_INFO, "allowing uid 0");
+ 
+     retval = PAM_SUCCESS;
+     }
+@@ -148,13 +149,13 @@
+ 
+       snprintf(jobpath, PATH_MAX - 1, "%s/%s", jobdirpath, jdent->d_name);
+ 
+-      if (debug) syslog(LOG_INFO, "opening %s", jobpath);
++      if (debug) pam_syslog(pamh, LOG_INFO, "opening %s", jobpath);
+ 
+       fp = open(jobpath, O_RDONLY, 0);
+ 
+       if (fp < 0)
+         {
+-        syslog(LOG_ERR, "error opening job file");
++        pam_syslog(pamh, LOG_ERR, "error opening job file");
+         continue;
+         }
+ 
+@@ -163,7 +164,7 @@
+       if (amt != sizeof(xjob.ji_qs))
+         {
+         close(fp);
+-        syslog(LOG_ERR, "short read of job file");
++        pam_syslog(pamh, LOG_ERR, "short read of job file");
+         continue;
+         }
+ 
+@@ -171,11 +172,11 @@
+         {
+         /* odd, this really should be JOB_UNION_TYPE_MOM */
+         close(fp);
+-        syslog(LOG_ERR, "job file corrupt");
++        pam_syslog(pamh, LOG_ERR, "job file corrupt");
+         continue;
+         }
+ 
+-      if (debug) syslog(LOG_INFO, "state=%d, substate=%d", xjob.ji_qs.ji_state, xjob.ji_qs.ji_substate);
++      if (debug) pam_syslog(pamh, LOG_INFO, "state=%d, substate=%d", xjob.ji_qs.ji_state, xjob.ji_qs.ji_substate);
+ 
+       if ((xjob.ji_qs.ji_un.ji_momt.ji_exuid == user_pwd->pw_uid) &&
+           ((xjob.ji_qs.ji_substate == JOB_SUBSTATE_PRERUN) ||
+@@ -185,7 +186,7 @@
+         /* success! */
+         close(fp);
+ 
+-        if (debug) syslog(LOG_INFO, "allowed by %s", jdent->d_name);
++        if (debug) pam_syslog(pamh, LOG_INFO, "allowed by %s", jdent->d_name);
+ 
+         retval = PAM_SUCCESS;
+ 
+@@ -202,9 +203,8 @@
+   if (ubuf)
+     free(ubuf);
+ 
+-  if (debug) syslog(LOG_INFO, "returning %s", retval == PAM_SUCCESS ? "success" : "failed");
++  if (debug) pam_syslog(pamh, LOG_INFO, "returning %s", retval == PAM_SUCCESS ? "success" : "failed");
+ 
+-  closelog();
+ 
+   return retval;
+   }

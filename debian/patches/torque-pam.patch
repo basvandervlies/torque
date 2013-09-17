@@ -1,0 +1,11 @@
+--- configure	2007-11-01 12:11:56.000000000 +0100
++++ configure.new	2007-11-01 12:18:35.000000000 +0100
+@@ -23218,7 +23218,7 @@
+ {
+ 
+                   $t* username;
+-                  pam_get_user(0,&username,0);
++                  pam_get_user((pam_handle_t*) 1,&username,0);
+ 
+   ;
+   return 0;

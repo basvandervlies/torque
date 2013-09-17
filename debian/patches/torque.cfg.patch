@@ -1,0 +1,29 @@
+--- src/server/pbsd_main.c	2006-01-27 19:45:38.000000000 +0100
++++ src/server/pbsd_main.c	2006-02-22 12:52:57.530088796 +0100
+@@ -452,6 +452,7 @@
+   time_t last_jobstat_time;
+   int    when;
+ 
++  int	 BuffSize;
+   char   *Buffer;
+ 
+   void	 ping_nodes A_((struct work_task *ptask));
+@@ -476,7 +477,8 @@
+ 
+   ProgName = argv[0];
+ 
+-  Buffer=calloc(65536,sizeof(char));
++  BuffSize=65536;
++  Buffer=calloc(1,BuffSize);
+ 
+   /* if we are not running with real and effective uid of 0, forget it */
+ 
+@@ -502,7 +504,7 @@
+ 
+   /* load/process config file first then override values with command line parameters */
+ 
+-  if (TLoadConfig(Buffer,sizeof(Buffer)) == 0)
++  if (TLoadConfig(Buffer,BuffSize) == 0)
+     {
+     char *ptr;
+     char *tptr;

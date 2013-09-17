@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# A script to configure torque. To support more than one release and different
+# kernels.
+#
+# SVN INFO:
+#	$Id: conf_torque 2385 2006-11-03 07:20:35Z bas $
+#
+set -x
+
+
+if [ -f torque_oldconfigure ]
+then
+  LIBS="-lutil" ./configure --prefix=/usr \
+ 	--libdir=/usr/lib/torque \
+	--includedir=/usr/include/torque \
+	--set-server-home=/var/spool/torque \
+	--set-tmpdir=/var/tmp \
+	--enable-syslog \
+	--set-sched=c \
+	--set-sched-code=fifo \
+	--set-default-server=localhost \
+	--disable-gui \
+	--set-cflags=" -g -D__PNEWTTY" \
+	--enable-docs \
+	--with-scp
+else
+ CFLAGS=" -D_FILE_OFFSET_BITS=64" ./configure --prefix=/usr \
+	--includedir=/usr/include/torque \
+	--with-server-home=/var/spool/torque \
+	--with-default-server=`hostname` \
+	--with-tmpdir=/var/tmp \
+	--with-pam=/lib/security \
+	--with-xauth=/usr/bin/X11/xauth \
+	--enable-syslog \
+	--with-sched=c \
+	--with-sched-code=fifo \
+	--disable-gui \
+	--with-cflags=" -g -D__PNEWTTY" \
+	--enable-docs \
+	--with-rcp=scp
+fi
+
+#--libdir=/usr/lib \
+#	--enable-blcr \

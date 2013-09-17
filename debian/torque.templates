@@ -1,0 +1,71 @@
+Template: torque/disclaimer
+Type: note
+Description: This debconf isn't fully functional.
+ We currently do not provide full-featured torque configuration via debconf.
+ We just care about /etc/default/torque to define which daemons to start.
+ .
+ Use qmgr or the files in /var/spool/torque for everything else.
+
+Template: torque/daemon_list
+Type: multiselect
+Choices: pbs_server, pbs_mom, pbs_sched
+Default: pbs_mom
+Description: Which daemons should be run on this node?
+ You can define which daemons should be started on this node. Normally, the
+ master node has to run at least pbs_server and pbs_sched (unless replaced by
+ Maui), whereas computation nodes usually only run pbs_mom (the Torque client)
+
+Template: torque/server_name
+Type: string
+Default: localhost
+Description: Please enter FQDN of your Torque server
+ Please enter the FQDN (with domain) of your Torque server. This is value will
+ be stored in /var/spool/torque/server_name.
+ .
+ Don't modify this file by hand, it will be overwritten anytime you upgrade
+ this package. Use "dpkg-reconfigure -p high torque" instead.
+
+Template: torque/pbs_mom_opts
+Type: string
+Description: Please enter the options to be passed to pbs_mom
+ Please enter the commandline options for pbs_mom. You can usually leave it
+ empty.
+ .
+ The value will be stored in /etc/default/torque.
+ .
+ Don't modify this file by hand, it will be overwritten anytime you upgrade
+ this package. Use "dpkg-reconfigure -p medium torque" instead.
+
+Template: torque/pbs_mom_restart_opts
+Type: string
+Description: Please enter the options to be passed to pbs_mom when it restarts
+ Please enter the commandline options when pbs_mom restarts. You can use
+ -r (delete the jobs) or -p (leave jobs running)
+ .
+ The value will be stored in /etc/default/torque.
+ .
+ Don't modify this file by hand, it will be overwritten anytime you upgrade
+ this package. Use "dpkg-reconfigure -p medium torque" instead.
+
+Template: torque/pbs_sched_opts
+Type: string
+Description: Please enter the options to be passed to pbs_sched
+ Please enter the commandline options for pbs_sched. You can usually leave it
+ empty.
+ .
+ The value will be stored in /etc/default/torque.
+ .
+ Don't modify this file by hand, it will be overwritten anytime you upgrade
+ this package. Use "dpkg-reconfigure -p medium torque" instead.
+
+Template: torque/pbs_server_opts
+Type: string
+Default: -a t
+Description: Please enter the options to be passed to pbs_server
+ Please enter the commandline options for pbs_server.
+ The default is "-a t"
+ .
+ The value will be stored in /etc/default/torque.
+ .
+ Don't modify this file by hand, it will be overwritten anytime you upgrade
+ this package. Use "dpkg-reconfigure -p medium torque" instead.
