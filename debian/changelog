@@ -1,4 +1,4 @@
-torque (2.4.17-3) unstable; urgency=low
+torque (2.5.14-1) unstable; urgency=low
 
   * New 2.5 version
   * enable pbs_mkdirs.in patch
@@ -7,6 +7,7 @@ torque (2.4.17-3) unstable; urgency=low
   * added /var/spool/torque/server_priv/credentials to pbs_mkdir.in for pbs_server
   * applied security patch for pbs_mom and pbs_server
   * use torque restart-mom
+  * this release has 2 secruity fixes
 
  -- Bas van der Vlies <bas@surfsara.nl>  Mon, 15 Jul 2013 11:56:52 +0200
 
