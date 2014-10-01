@@ -2170,7 +2170,6 @@ int get_used(
  *
  */
 
-#ifdef USESAVEDRESOURCES
 void encode_job_used(
 
   job        *pjob,   /* I */
@@ -2213,7 +2212,6 @@ void encode_job_used(
 
   return;
   }  /* END encode_job_used() */
-#endif    /* USESAVEDRESOURCES */
 
 
 
@@ -2229,9 +2227,7 @@ void req_jobobit(
   struct batch_request *preq)  /* I */
 
   {
-#ifdef USESAVEDRESOURCES
   char   id[] = "req_jobobit";
-#endif    /* USESAVEDRESOURCES */
   int    alreadymailed = 0;
   int    bad;
   char   acctbuf[RESC_USED_BUF];
@@ -2401,8 +2397,6 @@ void req_jobobit(
 
   have_resc_used = get_used(patlist, acctbuf);
 
-#ifdef USESAVEDRESOURCES
-
   /* if we don't have resources from the obit, use what the job already had */
 
   if (!have_resc_used)
@@ -2445,7 +2439,6 @@ void req_jobobit(
     free_br(tmppreq);
     }
 
-#endif    /* USESAVEDRESOURCES */
 
   strncat(mailbuf, (acctbuf + accttail), RESC_USED_BUF - strlen(mailbuf) - 1);
 
