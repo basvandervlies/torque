@@ -1,0 +1,25 @@
+Source: torque
+Section: unknown
+Priority: optional
+Maintainer: Bas van der Vlies <basv@sara.nl>
+Build-Depends: openssh-client, debhelper, libpam0g-dev, sed, gperf, libcr-dev, libxml2-dev
+Standards-Version: 3.7.2.2
+
+Package: torque
+Architecture: any 
+Depends: ${shlibs:Depends}, coreutils, debconf | debconf-2.0, libtorque2
+Provides: torque-client, torque-common, torque-mom, torque-pam, torque-scheduler, torque-server, libtorque2-dev, libtorque-dev
+Replaces: torque-client, torque-common, torque-mom, torque-pam, torque-scheduler, torque-server, libtorque2-dev, libtorque-dev
+Conflicts: torque-client, torque-common, torque-mom, torque-pam, torque-scheduler, torque-server, libtorque2-dev, libtorque-dev
+Description: Tera-scale Open-source Resource and QUEue manager
+	This package contains a batch system developed by supercluster.org
+	based on the openpbs software. This software contains a lot of
+	improvement over the openpbs software. 
+
+Package: libtorque2
+Section: libs
+Architecture: any
+Description: Dummy package for openmpi
+	Else openmpi fails to install. This is needed because libopenmpi
+	check for a version.
+

@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# A script to configure torque. To support more than one release and different
+# kernels.
+#
+# SVN INFO:
+#	$Id: conf_torque 2385 2006-11-03 07:20:35Z bas $
+#
+set -x
+
+CFLAGS=" -D_FILE_OFFSET_BITS=64" ./configure --prefix=/usr \
+	--includedir=/usr/include/torque \
+	--with-server-home=/var/spool/torque \
+	--with-default-server=r35n1 \
+	--with-tmpdir=/var/tmp \
+	--with-pam=/lib/security \
+	--with-xauth=/usr/bin/X11/xauth \
+    --with-trqauthd-sock-dir=/var/run \
+	--enable-syslog \
+	--enable-blcr \
+	--with-sched=c \
+	--with-sched-code=fifo \
+	--disable-gui \
+	--with-cflags=" -g -D__PNEWTTY" \
+	--enable-docs \
+    --enable-drmaa \
+	--with-rcp=scp
+	
+
+#--without-loadlibfile \

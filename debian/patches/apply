@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# Author: Bas van der Vlies
+# Desc. : Apply some useful debian/sara patches to torque
+#
+# SVN INFO:
+#	$Id: apply 2336 2006-09-26 12:31:18Z bas $
+#
+# pbs_mkdir.in patches by SARA
+#
+patch -p0 < debian/patches/pbs_mkdirs.patch 
