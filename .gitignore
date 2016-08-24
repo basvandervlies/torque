@@ -486,7 +486,6 @@ src/tools/test/tracejob/test_tracejob
 cscope.out
 *.orig
 *.rej
-*.patch
 coverage_results.file
 tmpdiff
 tmporig

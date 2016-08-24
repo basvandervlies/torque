@@ -1,0 +1,15 @@
+--- buildutils/pbs_mkdirs.in	2015-01-22 11:45:56.070204447 +0100
++++ pbs_mkdirs.in	2015-01-22 11:50:14.847773252 +0100
+@@ -1,5 +1,12 @@
+ #!/bin/sh					  
+ #
++# 20150122 SURFsara JD: this script cannot echo to STDOUT or STDERR when a debian packages is build from it.
++#
++# Close STDOUT file descriptor
++exec 1<&-
++# Close STDERR FD
++exec 2<&-
++#
+ # 
+ #         OpenPBS (Portable Batch System) v2.3 Software License
+ # 
