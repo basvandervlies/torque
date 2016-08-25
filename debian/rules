@@ -27,6 +27,7 @@ patched:
 
 build: patched
 	$(checkdir)
+	./autogen.sh
 	debian/conf_torque
 	$(MAKE)
 	touch build
