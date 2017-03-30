@@ -1,0 +1,10 @@
+torque for Debian
+----------------------
+
+Comments regarding the Package.
+
+Always see debian/patches/apply file. To see what patches you may
+need to include for the different torque versions.
+
+
+Bas van der Vlies <basv@sara.nl>, Thu, 11 Dec 2003 11:27:41 +0100
