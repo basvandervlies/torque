@@ -8,4 +8,4 @@
 #
 # pbs_mkdir.in patches by SARA
 #
-patch -p0 < debian/patches/pbs_mkdirs.patch 
+patch -p0 < debian/patches/pbs_mkdirs.fix
