@@ -1,0 +1,27 @@
+#!/bin/sh -e
+#
+# Authors: Bas van der Vlies & Jaap Dijkshoorn
+#
+# SVN INFO:
+#	$Id: postrm 318 2004-02-02 11:56:16Z bas $
+#
+CONFIG_FILE=/etc/default/torque
+
+if [ "$1" = "purge" ]
+then
+    if [ -e $CONFIG_FILE ]
+    then
+        /bin/rm $CONFIG_FILE
+    fi
+
+    # if we still have debconf, also remove our entries from the DB
+    if [ -e /usr/share/debconf/confmodule ]
+    then
+        # Source debconf library.
+        . /usr/share/debconf/confmodule
+        db_purge
+    fi
+fi
+
+
+#DEBHELPER#
