@@ -1002,8 +1002,6 @@ int parse_job_information_from_legacy_format(
         {
         free(raw_job_data);
 
-        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, 0);
-
         throw (int)PBSE_NODE_DELETED;
         }
       }
@@ -1095,8 +1093,6 @@ void process_job_info_from_json(
     // re-lock the node
     if ((np = find_nodebyname(node_name.c_str())) == NULL)
       {
-      pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, 0);
-
       throw (int)PBSE_NODE_DELETED;
       }
 
@@ -1163,6 +1159,7 @@ void *sync_node_jobs(
   bool                  sync = sji->sync_jobs;
   std::string           node_name(sji->node_name);
   std::string           raw_job_info(sji->job_info);
+  int                   old_state = PTHREAD_CANCEL_ENABLE;
 
   delete sji;
 
@@ -1171,7 +1168,7 @@ void *sync_node_jobs(
     return(NULL);
     }
 
-  pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, 0);
+  pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &old_state);
   
   std::vector<std::string> job_id_list;
   std::string              job_list_str("jobs=");
@@ -1207,7 +1204,7 @@ void *sync_node_jobs(
         np->unlock_node(__func__, NULL, LOGLEVEL);
         }
 
-      pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, 0);
+      pthread_setcancelstate(old_state, NULL);
       return(NULL);
       }
     }
@@ -1220,7 +1217,7 @@ void *sync_node_jobs(
     log_err(-1, __func__, log_buf);
     
     np->unlock_node(__func__, NULL, LOGLEVEL);
-    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, 0);
+    pthread_setcancelstate(old_state, NULL);
     return(NULL);
     }
 
@@ -1233,7 +1230,7 @@ void *sync_node_jobs(
 
   np->unlock_node(__func__, NULL, LOGLEVEL);
   
-  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, 0);
+  pthread_setcancelstate(old_state, NULL);
 
   return(NULL);
   }  /* END sync_node_jobs() */
@@ -1576,8 +1573,6 @@ void *write_node_state_work(
         {
         fprintf(nstatef, fmt, np->get_name(), np->nd_state & savemask);
         }
-
-      np->unlock_node(__func__, NULL, LOGLEVEL);
       } /* END for each node */
     }
   else
@@ -1721,8 +1716,8 @@ void write_node_power_state(void)
 int write_node_note(void)
 
   {
-  struct pbsnode *np;
-  all_nodes_iterator *iter = NULL;
+  struct pbsnode *np = NULL;
+  node_iterator   iter;
   FILE           *nin;
 
   if (LOGLEVEL >= 2)
@@ -1742,9 +1737,11 @@ int write_node_note(void)
 
     return(-1);
     }
+  
+  reinitialize_node_iterator(&iter);
 
   /* for each node ... */
-  while ((np = next_host(&allnodes, &iter, NULL)) != NULL)
+  while ((np = next_node(&allnodes, np, &iter)) != NULL)
     {
     /* write node name followed by its note string */
     if (np->nd_note.size() != 0)
@@ -1755,8 +1752,8 @@ int write_node_note(void)
     np->unlock_node(__func__, NULL, LOGLEVEL);
     }
 
-  if (iter != NULL)
-    delete iter;
+  if (iter.node_index != NULL)
+    delete iter.node_index;
 
   fflush(nin);
 
@@ -3701,7 +3698,8 @@ int add_job_to_gpu_subnode(
   pnode->nd_ngpus_free--;
   gn.inuse = true;
   gn.job_count++;
-  pnode->nd_ngpus_to_be_used--;
+  if (pnode->nd_ngpus_to_be_used > 0)
+    pnode->nd_ngpus_to_be_used--;
 
   return(PBSE_NONE);
   } /* END add_job_to_gpu_subnode() */
@@ -5741,7 +5739,7 @@ void free_nodes(
 
 struct pbsnode *get_compute_node(
 
-  char *node_name)
+  const char *node_name)
 
   {
   struct pbsnode *ar = alps_reporter;
@@ -5875,6 +5873,73 @@ int set_one_old(
   }  /* END set_one_old() */
 
 
+/*
+ * Process gpu token of the form <hostname>-gpu/<first>[-<last>]
+ *
+ * Set gpu subjob information for <hostname> node.
+ */
+
+int process_gpu_token(
+
+  const char *gpu_token,
+  job *pjob)
+
+  {
+  char           *pc;
+  char           *dash;
+  char           *p;
+  int             first;
+  int             last;
+  struct pbsnode *pnode;
+
+  // gpu_token expected to point to something like "numa3-gpu/2"
+
+  if ((gpu_token == NULL) || (pjob == NULL))
+    return(-1);
+     
+  // calculate range indices after the /
+  if ((pc = strchr((char *)gpu_token, (int)'/')))
+    {
+    first = strtol(pc + 1, &dash, 10);
+
+    *pc = '\0';
+
+    if (*dash == '-')
+      last = strtol(dash + 1, NULL, 10);
+    else
+      last = first;
+    }
+  else
+    {
+    first = 0;
+    last = first;
+    }
+
+  // drop -gpu suffix
+  if ((p = strrchr((char *)gpu_token, (int)'-')) != NULL)
+    {
+    if (strcmp(p, "-gpu") == 0)
+      *p = '\0';
+    }
+
+  // lookup node and set gpu info on each gpu subnode
+  if ((pnode = find_nodebyname(gpu_token)) != NULL)
+    {
+    int i;
+
+    for (i = first; i <= last; i++)
+      {
+      gpusubn &gn = pnode->nd_gpusn[i];
+
+      add_job_to_gpu_subnode(pnode, gn, pjob);
+      }
+
+      // unlock node
+      pnode->unlock_node(__func__, NULL, LOGLEVEL);
+    }
+
+  return(PBSE_NONE);
+  }
 
 /*
  * set_old_nodes - set "old" nodes as in use - called from pbsd_init()
@@ -5889,6 +5954,40 @@ int set_old_nodes(
   char     *old;
   char     *po;
   int       rc = PBSE_NONE;
+
+  // handle gpu info
+  if (pjob->ji_wattr[JOB_ATR_exec_gpus].at_flags & ATR_VFLAG_SET)
+    {
+    char *old_str;
+    
+    if ((old_str = strdup(pjob->ji_wattr[JOB_ATR_exec_gpus].at_val.at_str)) == NULL)
+      {
+      return(PBSE_SYSTEM);
+      }
+
+    while ((po = strrchr(old_str, (int)'+')) != NULL)
+      {
+      // remove +
+      *po++ = '\0';
+
+      if (process_gpu_token(po, pjob) != PBSE_NONE)
+        {
+        free(old_str);
+        return(PBSE_SYSTEM);
+        }
+      }
+
+    if (old_str != NULL)
+      {
+      if (process_gpu_token(old_str, pjob) != PBSE_NONE)
+        {
+        free(old_str);
+        return(PBSE_SYSTEM);
+        }
+      }
+
+    free(old_str);
+    }
 
   if (pjob->ji_wattr[JOB_ATR_exec_host].at_flags & ATR_VFLAG_SET)
     {

@@ -486,6 +486,7 @@ m4_ifdef([AM_SILENT_RULES],[
     src/test/checkpoint/Makefile
     src/test/cray_cpa/Makefile
     src/test/cray_energy/Makefile
+    src/test/cray_taskstats/Makefile
     src/test/generate_alps_status/Makefile
     src/test/mom_job_func/Makefile
     src/test/mom_comm/Makefile
@@ -1486,11 +1487,12 @@ AC_ARG_ENABLE(align_memory, [
   --enable-align-memory  Change compile flags to get rid of unaligned memory access errors])
 if test "x$GCC" = "xyes" ;then
   AC_MSG_CHECKING([whether add memory alignment flags])
-  if test "${enable_align_memory}" = "yes" ; then
-    AC_MSG_RESULT([yes])
-    CFLAGS="$CFLAGS -fstack-protector -Wformat -Wformat-security -DFORTIFY_SOURCE=2"
-  else
+  if test "$x{enable_align_memory}" = "xno" ; then
     AC_MSG_RESULT([no])
+  else
+    AC_MSG_RESULT([default yes])
+    CFLAGS="$CFLAGS -fstack-protector -Wformat -Wformat-security -DFORTIFY_SOURCE=2"
+    CXXFLAGS="$CXXFLAGS -fstack-protector -Wformat -Wformat-security -DFORTIFY_SOURCE=2"
   fi
 fi
 
@@ -1717,7 +1719,7 @@ case "$jobcreatedir" in
 esac
 AC_MSG_RESULT([$jobcreatedir])
 
-AUTH_TYPE="classic (pbs_iff)"
+AUTH_TYPE="trqauthd"
 
 dnl compile for munge authorization - allows sites to use munge
 dnl as a means to validate user identity from remote hosts. (executable based implementation)
@@ -1984,10 +1986,10 @@ AC_ARG_ENABLE(spool, [
                           $TORQUEHOME/spool and copy them to the users home
                           directory when the job completes.],
 [case "${enableval}" in
-  yes) NO_SPOOL_OUTPUT=0 ;;
-  no)  NO_SPOOL_OUTPUT=1 ;;
+  yes) NO_SPOOL_OUTPUT=0 ; RPM_AC_OPTS="$RPM_AC_OPTS --with spool" ;;
+  no)  NO_SPOOL_OUTPUT=1 ; RPM_AC_OPTS="$RPM_AC_OPTS --without spool" ;;
   *)   AC_MSG_ERROR(--enable-spool cannot take a value) ;;
-esac],[NO_SPOOL_OUTPUT=0])dnl
+esac],[NO_SPOOL_OUTPUT=0 ; RPM_AC_OPTS="$RPM_AC_OPTS --with spool"])dnl
 AC_DEFINE_UNQUOTED(NO_SPOOL_OUTPUT, ${NO_SPOOL_OUTPUT}, [directly use homedirs instead of $TORQUEHOME/spool])
 
 AC_ARG_ENABLE(shell-use-argv, [
@@ -2124,6 +2126,38 @@ AC_ARG_WITH(tcp_retry_limit, [
                          sockets. This limits those retries.],
     [TCP_RETRY_LIMIT=${withval}],[TCP_RETRY_LIMIT=0])
 AC_DEFINE_UNQUOTED(TCP_RETRY_LIMIT,${TCP_RETRY_LIMIT},[Define to set a max retry limit])
+
+
+
+AC_ARG_WITH(reserved_port_start, [
+  --with-reserved-port-start=NUMBER
+                             Set the starting reserved port number to be used. Must be a number 
+                             greater than 143 and less than 824. Please be careful when setting this,
+                             as restricting the number too much may not leave enough privileged ports
+                             available to pbs_server, which can potential slow down the server 
+                             immensely],
+  [RESERVED_PORT_START=${withval}],[RESERVED_PORT_START=144])
+
+dnl Make sure it's a completely numeric string
+if [[ $(expr "x${RESERVED_PORT_START}" : "x[0-9]*$") -gt 0 ]]; then
+  echo "Setting reserved port to get ports from ${RESERVED_PORT_START} to 1023 inclusive."
+else
+  echo "Value ${RESERVER_PORT_START} is not permitted for --with-reserved-port-start because it contains non-numeric characters."
+  exit -1
+fi
+
+dnl Make sure it isn't less than 144
+if [[ $RESERVED_PORT_START -lt 144 ]]; then
+  echo "Value ${RESERVED_PORT_START} is not permitted for --with-reserved-port-start because it is less than 144"
+  exit -1
+fi
+
+dnl Make sure it's less than 824 so that there are at least 200 reserved ports available for the daemons.
+if [[ $RESERVED_PORT_START -gt 823 ]]; then
+  echo "Value ${RESERVED_PORT_START} is not permitted for --with-reserved-port-start because it is greater than 823 and we need a range of at least 200 possible privileged ports."
+  exit -1
+fi
+AC_DEFINE_UNQUOTED(RESERVED_PORT_START, ${RESERVED_PORT_START},[Define to specify a different reserved port starting point])
 
 
 
@@ -2321,6 +2355,7 @@ AC_ARG_WITH(xauth,
         ],
         [
                 TestPath="$PATH"
+                TestPath="${TestPath}${PATH_SEPARATOR}/usr/bin"
                 TestPath="${TestPath}${PATH_SEPARATOR}/usr/X/bin"
                 TestPath="${TestPath}${PATH_SEPARATOR}/usr/bin/X11"
                 TestPath="${TestPath}${PATH_SEPARATOR}/usr/X11R6/bin"
@@ -2566,6 +2601,10 @@ dnl
 
 AC_CREATE_GENERIC_CONFIG([pbs],[-ltorque])
 
+# Cause make rpm to default to use the prefix resulting from configure
+RPM_AC_OPTS="--define '_prefix ${prefix}'$RPM_AC_OPTS"
+AC_SUBST(RPM_AC_OPTS)
+
 AC_SUBST(ALPS_LIBS)
 
 dnl these are quoted, and this removes them
@@ -2573,7 +2612,6 @@ SPEC_NAME=$PACKAGE_TARNAME
 SPEC_VERSION=$PACKAGE_VERSION
 AC_SUBST(SPEC_NAME)
 AC_SUBST(SPEC_VERSION)
-AC_SUBST(RPM_AC_OPTS)
 
 dnl  Head and bottom for the config-file
 AH_TOP([#ifndef _PBS_CONFIG_H_

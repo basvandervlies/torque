@@ -93,6 +93,11 @@ Socket::Socket(const Json::Value &json_layout, std::vector<std::string> &valid_i
   json_socket++;
   }
 
+Socket::Socket(const std::string &json_layout, std::vector<std::string> &valid_ids)
+  {
+  json_socket++;
+  }
+
 Socket::Socket()
   {
   }
@@ -146,8 +151,8 @@ bool Socket::spread_place(
     
   req        &r,
   allocation &master,
-  int         execution_slots_per,
-  int        &execution_slots_remainder,
+  allocation &remaining,
+  allocation &remainder,
   bool        chips)
 
   {
@@ -254,7 +259,7 @@ int Socket::get_total_gpus() const
   return(0);
   }
 
-unsigned long req::getMemory() const
+unsigned long long req::get_memory_per_task() const
   {
   return(req_mem);
   }
@@ -379,6 +384,8 @@ allocation &allocation::operator =(const allocation &other)
   {
   return(*this);
   }
+
+void allocation::adjust_for_spread(unsigned int quantity, bool find_remainder) {}
 
 PCI_Device::~PCI_Device() {}
 PCI_Device::PCI_Device() {}

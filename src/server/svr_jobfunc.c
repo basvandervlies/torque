@@ -483,8 +483,10 @@ int svr_enquejob(
       }
     }
 
-
-  if ((pque->qu_attr[QA_ATR_MaxUserJobs].at_flags & ATR_VFLAG_SET))
+  // Do not perform this check for array subjobs; they've already been counted.
+  if ((pque->qu_attr[QA_ATR_MaxUserJobs].at_flags & ATR_VFLAG_SET) &&
+      ((pjob->ji_arraystructid[0] == '\0') ||
+       (pjob->ji_is_array_template)))
     {
     std::string  uname(pjob->ji_wattr[JOB_ATR_job_owner].at_val.at_str);
 
@@ -653,25 +655,6 @@ int svr_enquejob(
     /* do anything needed doing regarding job dependencies */
     que_mgr.unlock();
 
-    if ((pjob->ji_qs.ji_state != JOB_STATE_COMPLETE) && 
-        (pjob->ji_qs.ji_substate != JOB_SUBSTATE_COMPLETE) && 
-        (pjob->ji_wattr[JOB_ATR_depend].at_flags & ATR_VFLAG_SET))
-      {
-      try
-        {
-        rc = depend_on_que(&pjob->ji_wattr[JOB_ATR_depend], pjob, ATR_ACTION_NOOP);
-        }
-      catch (int pbs_errcode)
-        {
-        rc = pbs_errcode;
-        }
-
-      if (rc == PBSE_JOBNOTFOUND)
-        return(rc);
-      else if (rc != PBSE_NONE)
-        rc = PBSE_BADDEPEND;
-      }
-
     /* set eligible time */
     if (((pjob->ji_wattr[JOB_ATR_etime].at_flags & ATR_VFLAG_SET) == 0) &&
         (pjob->ji_qs.ji_state == JOB_STATE_QUEUED))
@@ -693,6 +676,27 @@ int svr_enquejob(
     /* start attempts to route job */
     pjob->ji_qs.ji_un_type = JOB_UNION_TYPE_ROUTE;
     pjob->ji_qs.ji_un.ji_routet.ji_quetime = time_now;
+    
+    que_mgr.unlock();
+    }
+  
+  if ((pjob->ji_qs.ji_state != JOB_STATE_COMPLETE) && 
+      (pjob->ji_qs.ji_substate != JOB_SUBSTATE_COMPLETE) && 
+      (pjob->ji_wattr[JOB_ATR_depend].at_flags & ATR_VFLAG_SET))
+    {
+    try
+      {
+      rc = depend_on_que(&pjob->ji_wattr[JOB_ATR_depend], pjob, ATR_ACTION_NOOP);
+      }
+    catch (int pbs_errcode)
+      {
+      rc = pbs_errcode;
+      }
+
+    if (rc == PBSE_JOBNOTFOUND)
+      return(rc);
+    else if (rc != PBSE_NONE)
+      rc = PBSE_BADDEPEND;
     }
 
   return(rc);
@@ -811,15 +815,21 @@ int svr_dequejob(
       }
 
     /* the only reason to care about the error is if the job is gone */
-    int rc2;
-    if ((rc2 = remove_job(pque->qu_jobs_array_sum, pjob)) == PBSE_JOBNOTFOUND)
-      return(rc2);
-
-    if (rc2 == THING_NOT_FOUND && (LOGLEVEL >= 8))
+    // Do not check array subjobs; they aren't in the summary
+    if ((pjob->ji_arraystructid[0] == '\0') ||
+        (pjob->ji_is_array_template))
       {
-      snprintf(log_buf,sizeof(log_buf),
-         "Could not remove job %s from qu_jobs_array_sum\n", jobid.c_str());
-      log_ext(-1, __func__, log_buf, LOG_WARNING);
+      int rc2;
+      if ((rc2 = remove_job(pque->qu_jobs_array_sum, pjob)) == PBSE_JOBNOTFOUND)
+        return(rc2);
+
+      if ((rc2 == THING_NOT_FOUND) &&
+          (LOGLEVEL >= 8))
+        {
+        snprintf(log_buf,sizeof(log_buf),
+           "Could not remove job %s from qu_jobs_array_sum\n", jobid.c_str());
+        log_ext(-1, __func__, log_buf, LOG_WARNING);
+        }
       }
 
     pjob->ji_qhdr = NULL;
@@ -849,9 +859,9 @@ int svr_dequejob(
     }
 
   /* the only error is if the job isn't present */
-  if ((rc = remove_job(&alljobs, pjob)) == PBSE_NONE)
+  if (!pjob->ji_is_array_template)
     {
-    if (!pjob->ji_is_array_template)
+    if ((rc = remove_job(&alljobs, pjob)) == PBSE_NONE)
       {
       lock_sv_qs_mutex(server.sv_qs_mutex, __func__);
 
@@ -872,18 +882,18 @@ int svr_dequejob(
       
       pthread_mutex_unlock(server.sv_jobstates_mutex);
       }
-    }
-  else if (rc == PBSE_JOBNOTFOUND)
-    {
-    /* calling functions know this return code means the job is gone */
-    return(rc);
-    }
-
-  if (rc == THING_NOT_FOUND && (LOGLEVEL >= 8))
-    {
-    snprintf(log_buf,sizeof(log_buf),
-      "Could not remove job %s from alljobs\n", pjob->ji_qs.ji_jobid); 
-    log_ext(-1, __func__, log_buf, LOG_WARNING);
+    else if (rc == PBSE_JOBNOTFOUND)
+      {
+      /* calling functions know this return code means the job is gone */
+      return(rc);
+      }
+    if ((rc == THING_NOT_FOUND) &&
+        (LOGLEVEL >= 8))
+      {
+      snprintf(log_buf,sizeof(log_buf),
+        "Could not remove job %s from alljobs\n", pjob->ji_qs.ji_jobid); 
+      log_ext(-1, __func__, log_buf, LOG_WARNING);
+      }
     }
 
 #ifndef NDEBUG
@@ -1767,14 +1777,6 @@ int chk_svr_resc_limit(
               }
             }
           }
-
-        /* Added 6/14/2010 Ken Nielson for ability to parse the procs resource */
-        else if ((r.rs_defin == procresc) &&
-                 (qtype == QTYPE_Execution))
-          {
-          proc_ct = r.rs_value.at_val.at_long;
-          }
-
 #ifdef NERSCDEV
         else if (r.rs_defin == mppwidthresc)
           {
@@ -1801,6 +1803,11 @@ int chk_svr_resc_limit(
                  (r.rs_defin != needresc))
           {
           /* don't check neednodes */
+          if ((r.rs_defin == procresc) &&
+                   (qtype == QTYPE_Execution))
+            {
+            proc_ct = r.rs_value.at_val.at_long;
+            }
 
           rc = r.rs_defin->rs_comp(&cmpwith->rs_value, &r.rs_value);
 

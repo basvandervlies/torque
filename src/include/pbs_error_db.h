@@ -212,7 +212,7 @@ PbsErrClient(PBSE_NOJOBARRAYS, (char *)"Queue does not allow job arrays")
 /* 15090 */
 PbsErrClient(PBSE_RELAYED_TO_MOM, (char *)"request was relayed to a MOM") /* */
 PbsErrClient(PBSE_MEM_MALLOC, (char *)"Error allocating memory - out of memory")
-PbsErrClient(PBSE_MUTEX, (char *)"Error allocating controling mutex (lock/unlock)")
+PbsErrClient(PBSE_MUTEX, (char *)"Error allocating controlling mutex (lock/unlock)")
 PbsErrClient(PBSE_THREADATTR, (char *)"Error setting thread attributes")
 PbsErrClient(PBSE_THREAD, (char *)"Error creating thread")
 PbsErrClient(PBSE_SELECT, (char *)"Error in socket select")
@@ -315,8 +315,8 @@ PbsErrRm(PBSE_RMBADPARAM,            (char *)"parameter could not be used")
 PbsErrRm(PBSE_RMNOPARAM,             (char *)"a parameter needed did not exist")
 /* something specified didn't exist */
 PbsErrRm(PBSE_RMEXIST,               (char *)"something specified didn't exist")
-/* a system error occured */
-PbsErrRm(PBSE_RMSYSTEM,              (char *)"a system error occured")
+/* a system error occurred */
+PbsErrRm(PBSE_RMSYSTEM,              (char *)"a system error occurred")
 /* only part of reservation made */
 PbsErrRm(PBSE_RMPART,                (char *)"only part of reservation made")
 /* pbs rm errors ceiling (max_rm_err + 1) */

@@ -256,7 +256,11 @@ class item_container
 
     item<T> *pItem = new item<T>(id,it);
     if (insert_thing(pItem) < 0)
+      {
+      delete pItem;
       return false;
+      }
+
     return true;
     }
 
@@ -280,7 +284,10 @@ class item_container
     item<T> *pItem = new item<T>(id,it);
 
     if (insert_thing_after(pItem,index) < 0)
+      {
+      delete pItem;
       return false;
+      }
 
     return true;
     }
@@ -310,7 +317,10 @@ class item_container
     item<T> *pItem = new item<T>(id,it);
 
     if (insert_thing_before(pItem,iter) < 0)
+      {
+      delete pItem;
       return false;
+      }
 
     return true;
     }
@@ -349,7 +359,10 @@ class item_container
 
     item<T> *pItem = new item<T>(id,it);
     if (insert_thing_before(pItem,index) != PBSE_NONE)
+      {
+      delete pItem;
       return false;
+      }
 
     return true;
     }
@@ -803,7 +816,9 @@ class item_container
     int prev = slots[index].prev;
     int next = slots[index].next;
 
-    map.erase(slots[index].pItem->id);
+    if (map.find(slots[index].pItem->id) != map.end())
+      map.erase(slots[index].pItem->id);
+
     slots[index].prev = ALWAYS_EMPTY_INDEX;
     slots[index].next = ALWAYS_EMPTY_INDEX;
     delete slots[index].pItem;
